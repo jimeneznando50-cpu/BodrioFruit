@@ -1,9 +1,8 @@
--- [[ BODRIO FRUIT - GUI DEFINITIVA CON MINIMIZAR/CERRAR ]]
+-- [[ BODRIO FRUIT - GUI DEFINITIVA CON BORDES REDONDEADOS Y ARRASTRE CORRECTO ]]
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
 
 -- Crear ScreenGui
 local gui = Instance.new("ScreenGui")
@@ -11,12 +10,10 @@ gui.Name = "BodrioGUI"
 gui.Parent = player:WaitForChild("PlayerGui")
 gui.ResetOnSpawn = false
 
--- Estado de minimizado
 local minimized = false
-local iconVisible = false
 
 -- ==========================================
--- MAIN FRAME - Altura reducida (350x420)
+-- MAIN FRAME - Con bordes redondeados (radio 12)
 -- ==========================================
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 350, 0, 420)
@@ -28,14 +25,22 @@ mainFrame.ClipsDescendants = true
 mainFrame.Parent = gui
 mainFrame.Visible = true
 
--- Sombra
+-- Aplicar borde redondeado con UICorner
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- Sombra exterior con radio
 local shadow = Instance.new("Frame")
-shadow.Size = UDim2.new(1, 10, 1, 10)
-shadow.Position = UDim2.new(0, -5, 0, -5)
+shadow.Size = UDim2.new(1, 12, 1, 12)
+shadow.Position = UDim2.new(0, -6, 0, -6)
 shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-shadow.BackgroundTransparency = 0.8
+shadow.BackgroundTransparency = 0.75
 shadow.BorderSizePixel = 0
 shadow.Parent = mainFrame
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 14)
+shadowCorner.Parent = shadow
 
 -- ==========================================
 -- BARRA DE TÍTULO CON BOTONES
@@ -47,6 +52,13 @@ titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 titleBar.BackgroundTransparency = 0.3
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
+local titleBarCorner = Instance.new("UICorner")
+titleBarCorner.CornerRadius = UDim.new(0, 12)
+titleBarCorner.Parent = titleBar
+-- Solo redondear arriba (no abajo)
+local titleBarCorner2 = Instance.new("UICorner")
+titleBarCorner2.CornerRadius = UDim.new(0, 12)
+titleBarCorner2.Parent = titleBar
 
 -- Título
 local title = Instance.new("TextLabel")
@@ -72,6 +84,9 @@ minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimizeBtn.TextScaled = true
 minimizeBtn.Font = Enum.Font.GothamBold
 minimizeBtn.Parent = titleBar
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 4)
+minCorner.Parent = minimizeBtn
 
 -- Botón Cerrar
 local closeBtn = Instance.new("TextButton")
@@ -85,9 +100,12 @@ closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.TextScaled = true
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.Parent = titleBar
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 4)
+closeCorner.Parent = closeBtn
 
 -- ==========================================
--- ICONO FLOTANTE (cuando está minimizado)
+-- ICONO FLOTANTE (arrastre con click separado)
 -- ==========================================
 local iconFrame = Instance.new("Frame")
 iconFrame.Size = UDim2.new(0, 50, 0, 50)
@@ -98,8 +116,10 @@ iconFrame.BorderSizePixel = 1
 iconFrame.BorderColor3 = Color3.fromRGB(100, 80, 200)
 iconFrame.Visible = false
 iconFrame.Parent = gui
+local iconCorner = Instance.new("UICorner")
+iconCorner.CornerRadius = UDim.new(0, 12)
+iconCorner.Parent = iconFrame
 
--- Icono de texto
 local iconLabel = Instance.new("TextLabel")
 iconLabel.Size = UDim2.new(1, 0, 1, 0)
 iconLabel.BackgroundTransparency = 1
@@ -109,23 +129,15 @@ iconLabel.TextScaled = true
 iconLabel.Font = Enum.Font.GothamBold
 iconLabel.Parent = iconFrame
 
--- Botón para restaurar desde icono
-iconFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        minimized = false
-        mainFrame.Visible = true
-        iconFrame.Visible = false
-        TweenService:Create(mainFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0.05}):Play()
-    end
-end)
-
--- Hacer icono arrastrable
+-- ARRASTRE DEL ICONO (sin abrir al arrastrar)
 local iconDragging = false
 local iconDragStart, iconStartPos
+local iconClicked = false
 
 iconFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         iconDragging = true
+        iconClicked = true
         iconDragStart = input.Position
         iconStartPos = iconFrame.Position
     end
@@ -134,6 +146,10 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if iconDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - iconDragStart
+        -- Si se movió más de 5 píxeles, es arrastre, no click
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            iconClicked = false
+        end
         iconFrame.Position = UDim2.new(iconStartPos.X.Scale, iconStartPos.X.Offset + delta.X, iconStartPos.Y.Scale, iconStartPos.Y.Offset + delta.Y)
     end
 end)
@@ -141,6 +157,14 @@ end)
 UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         iconDragging = false
+        -- Solo abrir si fue click (no arrastre)
+        if iconClicked then
+            minimized = false
+            mainFrame.Visible = true
+            iconFrame.Visible = false
+            TweenService:Create(mainFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0.05}):Play()
+        end
+        iconClicked = false
     end
 end)
 
@@ -183,6 +207,9 @@ contentFrame.ScrollBarThickness = 4
 contentFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 80, 200)
 contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 contentFrame.Parent = mainFrame
+local contentCorner = Instance.new("UICorner")
+contentCorner.CornerRadius = UDim.new(0, 8)
+contentCorner.Parent = contentFrame
 
 -- Crear botones de pestaña
 local function createTabButton(name, xPos)
@@ -219,7 +246,7 @@ for _, tab in pairs(tabs) do
 end
 
 -- ==========================================
--- FUNCIÓN PARA CARGAR CONTENIDO
+-- FUNCIÓN PARA CARGAR CONTENIDO (TODAS LAS FUNCIONES)
 -- ==========================================
 function loadTabContent(tabName)
     for _, child in pairs(contentFrame:GetChildren()) do
@@ -235,6 +262,9 @@ function loadTabContent(tabName)
         frame.BackgroundTransparency = 0.3
         frame.BorderSizePixel = 0
         frame.Parent = contentFrame
+        local frameCorner = Instance.new("UICorner")
+        frameCorner.CornerRadius = UDim.new(0, 4)
+        frameCorner.Parent = frame
         
         local lbl = Instance.new("TextLabel")
         lbl.Size = UDim2.new(0.7, 0, 1, 0)
@@ -257,6 +287,9 @@ function loadTabContent(tabName)
         toggle.TextScaled = true
         toggle.Font = Enum.Font.GothamBold
         toggle.Parent = frame
+        local toggleCorner = Instance.new("UICorner")
+        toggleCorner.CornerRadius = UDim.new(0, 3)
+        toggleCorner.Parent = toggle
         
         local state = defaultState
         toggle.MouseButton1Click:Connect(function()
@@ -268,7 +301,9 @@ function loadTabContent(tabName)
         yPos = yPos + 26
     end
     
-    -- Contenido por pestaña
+    -- ==========================================
+    -- TODAS LAS FUNCIONES (COMPLETAS)
+    -- ==========================================
     if tabName == "Home" then
         addToggle("Auto Farm Level", false)
         addToggle("Auto Farm Nearest", false)
@@ -302,6 +337,10 @@ function loadTabContent(tabName)
         addToggle("Auto Observation V2", false)
         addToggle("Auto Eclaw", false)
         addToggle("Auto Superhuman", false)
+        addToggle("Auto Get Rengoku", false)
+        addToggle("Auto Get TTK", false)
+        addToggle("Auto Evolve DarkBlade", false)
+        addToggle("Auto Get Skull Guitar", false)
         
     elseif tabName == "Tele" then
         addToggle("Teleport to Sea 1", false)
@@ -312,6 +351,7 @@ function loadTabContent(tabName)
         addToggle("Teleport to Sky", false)
         addToggle("Teleport to Castle", false)
         addToggle("Teleport to Mansion", false)
+        addToggle("Teleport to Fruits", false)
         
     elseif tabName == "Comb" then
         addToggle("Aimbot", false)
@@ -322,14 +362,17 @@ function loadTabContent(tabName)
         addToggle("ESP Chests", false)
         addToggle("Hitbox Extender", false)
         addToggle("Auto Dodge", false)
+        addToggle("Speed Hack", false)
+        addToggle("Fly / Noclip", false)
         
     elseif tabName == "Shop" then
         addToggle("Auto Buy Sword", false)
-        addToggle("Auto Buy Fighting", false)
+        addToggle("Auto Buy Fighting Style", false)
         addToggle("Auto Buy Race", false)
         addToggle("Auto Buy Fruit", false)
         addToggle("Auto Buy Accessories", false)
         addToggle("Auto Buy All", false)
+        addToggle("Shop All Items", false)
         
     elseif tabName == "Config" then
         addToggle("Configurable Auto Farm", false)
@@ -339,6 +382,7 @@ function loadTabContent(tabName)
         addToggle("Infinite Energy", false)
         addToggle("Auto Rejoin", false)
         addToggle("Debug Mode", false)
+        addToggle("Hitbox Extender Config", false)
     end
     
     contentFrame.CanvasSize = UDim2.new(0, 0, 0, yPos + 10)
@@ -347,7 +391,7 @@ end
 loadTabContent("Home")
 
 -- ==========================================
--- HACER GUI ARRASTRABLE
+-- ARRASTRE DE LA VENTANA PRINCIPAL
 -- ==========================================
 local dragging = false
 local dragStart, startPos
@@ -373,4 +417,4 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-print("🥔 Bodrio Fruit GUI definitiva con minimizar y cerrar.")
+print("🥔 Bodrio Fruit GUI con bordes redondeados y arrastre corregido.")
