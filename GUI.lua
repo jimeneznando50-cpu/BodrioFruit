@@ -255,6 +255,8 @@ function loadTabContent(tabName)
     end
     
     local yPos = 2
+
+    -- Función toggle ON/OFF (clásica)
     local function addToggle(labelText, defaultState)
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, -6, 0, 24)
@@ -301,9 +303,101 @@ function loadTabContent(tabName)
         end)
         yPos = yPos + 26
     end
-    
+
     -- ==========================================
-    -- TODAS LAS FUNCIONES (COMPLETAS)
+    -- FUNCIÓN DROPDOWN (para seleccionar entre varias opciones)
+    -- ==========================================
+    local function addDropdown(labelText, options, defaultIndex)
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, -6, 0, 28)
+        frame.Position = UDim2.new(0, 0, 0, yPos)
+        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 42)
+        frame.BackgroundTransparency = 0.3
+        frame.BorderSizePixel = 0
+        frame.Parent = contentFrame
+        local frameCorner = Instance.new("UICorner")
+        frameCorner.CornerRadius = UDim.new(0, 4)
+        frameCorner.Parent = frame
+        
+        -- Label
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.5, 0, 1, 0)
+        lbl.Position = UDim2.new(0, 5, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = labelText
+        lbl.TextColor3 = Color3.fromRGB(200, 200, 230)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.TextScaled = true
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.Parent = frame
+        
+        -- Botón del dropdown (muestra la opción seleccionada)
+        local dropBtn = Instance.new("TextButton")
+        dropBtn.Size = UDim2.new(0, 120, 0, 20)
+        dropBtn.Position = UDim2.new(0.5, 10, 0.5, -10)
+        dropBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        dropBtn.BorderSizePixel = 0
+        dropBtn.Text = options[defaultIndex or 1]
+        dropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        dropBtn.TextScaled = true
+        dropBtn.Font = Enum.Font.GothamMedium
+        dropBtn.Parent = frame
+        local dropCorner = Instance.new("UICorner")
+        dropCorner.CornerRadius = UDim.new(0, 4)
+        dropCorner.Parent = dropBtn
+        
+        -- Lista desplegable (oculta inicialmente)
+        local listFrame = Instance.new("Frame")
+        listFrame.Size = UDim2.new(0, 120, 0, #options * 22)
+        listFrame.Position = UDim2.new(0.5, 10, 0, 28)
+        listFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+        listFrame.BackgroundTransparency = 0.1
+        listFrame.BorderSizePixel = 1
+        listFrame.BorderColor3 = Color3.fromRGB(80, 60, 160)
+        listFrame.Visible = false
+        listFrame.Parent = frame
+        local listCorner = Instance.new("UICorner")
+        listCorner.CornerRadius = UDim.new(0, 4)
+        listCorner.Parent = listFrame
+        
+        local selectedIndex = defaultIndex or 1
+        local selectedValue = options[selectedIndex]
+        
+        -- Crear cada opción como botón
+        for i, opt in ipairs(options) do
+            local optBtn = Instance.new("TextButton")
+            optBtn.Size = UDim2.new(1, 0, 0, 22)
+            optBtn.Position = UDim2.new(0, 0, 0, (i-1) * 22)
+            optBtn.BackgroundColor3 = (i == selectedIndex) and Color3.fromRGB(80, 60, 160) or Color3.fromRGB(30, 30, 50)
+            optBtn.BackgroundTransparency = 0.3
+            optBtn.BorderSizePixel = 0
+            optBtn.Text = opt
+            optBtn.TextColor3 = Color3.fromRGB(220, 220, 255)
+            optBtn.TextScaled = true
+            optBtn.Font = Enum.Font.GothamMedium
+            optBtn.Parent = listFrame
+            
+            optBtn.MouseButton1Click:Connect(function()
+                selectedIndex = i
+                selectedValue = opt
+                dropBtn.Text = opt
+                listFrame.Visible = false
+                print("📦 " .. labelText .. " seleccionado: " .. opt)
+                -- Aquí luego pondremos la lógica real de compra/equipado
+            end)
+        end
+        
+        -- Mostrar/ocultar dropdown al hacer clic en el botón principal
+        dropBtn.MouseButton1Click:Connect(function()
+            listFrame.Visible = not listFrame.Visible
+        end)
+        
+        yPos = yPos + 30
+        return selectedValue
+    end
+
+    -- ==========================================
+    -- CONTENIDO DE CADA PESTAÑA
     -- ==========================================
     if tabName == "Home" then
         addToggle("Auto Farm Level", false)
@@ -367,9 +461,16 @@ function loadTabContent(tabName)
         addToggle("Fly / Noclip", false)
         
     elseif tabName == "Shop" then
+        -- Reemplazamos los toggles simples por dropdowns donde corresponda
         addToggle("Auto Buy Sword", false)
-        addToggle("Auto Buy Fighting Style", false)
-        addToggle("Auto Buy Race", false)
+        addDropdown("Auto Buy Fighting Style", {
+            "Dark Step", "Water Kung Fu", "Dragon Claw", 
+            "Superhuman", "Death Step", "Sharkman Karate", 
+            "Electric Claw", "Dragon Talon", "Godhuman", "Sanguine Art"
+        }, 1)
+        addDropdown("Auto Buy Race", {
+            "Human", "Rabbit", "Shark", "Angel", "Cyborg", "Ghoul", "Draco"
+        }, 1)
         addToggle("Auto Buy Fruit", false)
         addToggle("Auto Buy Accessories", false)
         addToggle("Auto Buy All", false)
@@ -418,4 +519,4 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
-print("🥔 Bodrio Fruit GUI con icono siempre visible y arrastre corregido.")
+print("🥔 Bodrio Fruit GUI con icono siempre visible, arrastre corregido y dropdowns integrados.")
